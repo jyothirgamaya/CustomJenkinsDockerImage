@@ -1,0 +1,76 @@
+jenkins:
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+       - id: ${JENKINS_ADMIN_ID}
+         password: ${JENKINS_ADMIN_PASSWORD}
+       - id: ${JENKINS_USER}
+         password: ${JENKINS_USER_PASSWORD}
+  authorizationStrategy:
+    globalMatrix:
+      permissions:
+        - "Overall/Administer:admin"
+        - "Overall/Read:authenticated"
+  remotingSecurity:
+    enabled: true
+security:
+  queueItemAuthenticator:
+    authenticators:
+    - global:
+        strategy: triggeringUsersAuthorizationStrategy
+jobs:
+  - script: >
+      pipelineJob('/docker-maven-plugin') {
+        definition {
+          cps {
+            script("""\
+              pipeline {
+                agent any
+                stages {
+                  stage ('source') {
+                    steps {
+                      git branch: 'master', url: 'https://github.com/jyothirgamaya/docker-maven-plugin-example.git', credentialsId: 'gitHub' 
+                    }
+                }
+                  stage ('build') {
+                    steps {
+                      sh 'echo Workspace'
+                      sh 'mvn -f clean verify' 
+                    }
+                }
+              }""".stripIndent())
+          }
+        }
+      }
+   
+    
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - usernamePassword:
+              description: GitHub
+              id: gitHub
+              scope: GLOBAL
+              username: jyothirgamaya.m@gmail.com
+              password: Mino@123
+tool:
+  maven:
+    installations:
+      - name: "custom"
+        properties:
+          - installSource:
+              installers:
+                - maven:
+                    id: "3.6.3"
+
+unclassified:
+  location:
+    url: http://localhost:8080/
+  githubpluginconfig:
+    configs:
+      - name: "InHouse GitHub EE"
+        apiUrl: "https://api.github.com"
+        credentialsId: "gitHub"
+        manageHooks: true
